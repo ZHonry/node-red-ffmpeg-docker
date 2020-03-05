@@ -58,13 +58,13 @@ ARG PREFIX=/opt/ffmpeg
 ARG PKG_CONFIG_PATH=/opt/ffmpeg/lib64/pkgconfig
 ARG LD_LIBRARY_PATH=/opt/ffmpeg/lib
 ARG MAKEFLAGS="-j8"
-ENV MY_PROXY_URL="http://192.168.2.70:1086/"
-ENV HTTP_PROXY=$MY_PROXY_URL \
-    HTTPS_PROXY=$MY_PROXY_URL \
-    FTP_PROXY=$MY_PROXY_URL \
-    http_proxy=$MY_PROXY_URL \
-    https_proxy=$MY_PROXY_URL \
-    ftp_proxy=$MY_PROXY_URL
+#ENV MY_PROXY_URL="http://192.168.2.70:1086/"
+#ENV HTTP_PROXY=$MY_PROXY_URL \
+#    HTTPS_PROXY=$MY_PROXY_URL \
+#    FTP_PROXY=$MY_PROXY_URL \
+#    http_proxy=$MY_PROXY_URL \
+#    https_proxy=$MY_PROXY_URL \
+#    ftp_proxy=$MY_PROXY_URL
 
 # FFmpeg build dependencies.
 RUN apk add --update \
