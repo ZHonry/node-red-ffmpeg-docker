@@ -12,6 +12,8 @@
 配合sshpass软件（已安装）可自动输入ssh密码。
 #### 如图
 ![image](https://github.com/ZHonry/node-red-ffmpeg-docker/blob/master/exec.png)
+
+### Docker-compose示例
 ```javascript
 version: '2.1'
     services:
