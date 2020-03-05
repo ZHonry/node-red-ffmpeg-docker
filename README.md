@@ -6,7 +6,7 @@
 4.修改源为中科大源，提高构建速度；
 5.增加PROXY代理在构建过程中加速下载AOM和FFMPEG源代码（修改[Dockerfile.custom](https://github.com/ZHonry/node-red-ffmpeg-docker/blob/master/docker-custom/Dockerfile.custom)中ENV MY_PROXY_URL="http://192.168.2.70:1086/"）
 ## 构建Docker
-如何构建请参照[docker-custom](https://github.com/ZHonry/node-red-ffmpeg-docker/tree/master/docker-custom) 目录README，也可直接使用[jeesa/node-red-ffmpeg](https://hub.docker.com/r/jeesa/node-red-ffmpeg)（仅支持amd64，其他CPU请自行构建）
+如何构建请参照[docker-custom](https://github.com/ZHonry/node-red-ffmpeg-docker/tree/master/docker-custom) 目录的README，也可直接使用[jeesa/node-red-ffmpeg](https://hub.docker.com/r/jeesa/node-red-ffmpeg)（仅支持amd64，其他CPU请自行构建）
 ## 使用
 使用方法与Ndode-RED官方docker完全一致，如果需要在nr中使用exec节点远程控制其他Linux终端，为确保ssh证书持久保存，需将/usr/src/node-red/.ssh文件夹映射到本地
 配合sshpass软件（已安装）可自动输入ssh密码。
