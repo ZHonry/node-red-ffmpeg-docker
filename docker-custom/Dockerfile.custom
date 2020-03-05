@@ -5,6 +5,10 @@ ARG OS=alpine
 #### Stage BASE ########################################################################################################
 FROM ${ARCH}/node:${NODE_VERSION}-${OS} AS base
 
+#修改源
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && \
+echo http://mirrors.ustc.edu.cn/alpine/edge/testing >> /etc/apk/repositories
+
 # Copy scripts
 COPY scripts/*.sh /tmp/
 
@@ -18,7 +22,20 @@ RUN set -ex && \
         nano \
         git \
         openssl \
-        openssh-client && \
+        openssh-client \
+        ca-certificates  \
+        pcre  \
+        lame  \
+        libogg  \
+        libass  \
+        libvpx  \
+        libvorbis  \
+        libwebp  \
+        libtheora  \
+        opus  \
+        rtmpdump  \
+        x264-dev  \
+        x265-dev && \
     mkdir -p /usr/src/node-red /data && \
     deluser --remove-home node && \
     adduser -h /usr/src/node-red -D -H node-red -u 1000 && \
@@ -34,11 +51,101 @@ COPY package.json .
 #### Stage BUILD #######################################################################################################
 FROM base AS build
 
+ARG FFMPEG_VERSION=ffmpeg-snapshot.tar.bz2
+ARG AOM_VERSION=master
+
+ARG PREFIX=/opt/ffmpeg
+ARG PKG_CONFIG_PATH=/opt/ffmpeg/lib64/pkgconfig
+ARG LD_LIBRARY_PATH=/opt/ffmpeg/lib
+ARG MAKEFLAGS="-j8"
+ENV MY_PROXY_URL="http://192.168.2.70:1086/"
+ENV HTTP_PROXY=$MY_PROXY_URL \
+    HTTPS_PROXY=$MY_PROXY_URL \
+    FTP_PROXY=$MY_PROXY_URL \
+    http_proxy=$MY_PROXY_URL \
+    https_proxy=$MY_PROXY_URL \
+    ftp_proxy=$MY_PROXY_URL
+
+# FFmpeg build dependencies.
+RUN apk add --update \
+  build-base \
+  cmake \
+  freetype-dev \
+  lame-dev \
+  libogg-dev \
+  libass \
+  libass-dev \
+  libvpx-dev \
+  libvorbis-dev \
+  libwebp-dev \
+  libtheora-dev \
+  libtool \
+  opus-dev \
+  perl \
+  pkgconf \
+  openssl-dev \
+  pkgconfig \
+  python \
+  rtmpdump-dev \
+  wget \
+  x264-dev \
+  x265-dev \
+  yasm \
+  fdk-aac-dev
+
+# Build libaom for av1.
+RUN mkdir -p /tmp/aom && cd /tmp/ && \
+  wget --no-check-certificate https://aomedia.googlesource.com/aom/+archive/${AOM_VERSION}.tar.gz && \
+  tar zxf ${AOM_VERSION}.tar.gz && rm ${AOM_VERSION}.tar.gz && \
+  rm -rf CMakeCache.txt CMakeFiles && \
+  mkdir -p ./aom_build && \
+  cd ./aom_build && \
+  cmake -DCMAKE_INSTALL_PREFIX="${PREFIX}" -DBUILD_SHARED_LIBS=1 .. && \
+  make && make install
+
+# Get ffmpeg source.
+RUN cd /tmp/ && \
+  wget --no-check-certificate https://ffmpeg.org/releases/${FFMPEG_VERSION} && \
+  tar xjvf ${FFMPEG_VERSION} && rm ${FFMPEG_VERSION}
+
+# Compile ffmpeg.
+RUN cd /tmp/ffmpeg && \
+  ./configure \
+  --enable-version3 \
+  --enable-gpl \
+  --enable-nonfree \
+  --enable-small \
+  --enable-libaom \
+  --enable-libmp3lame \
+  --enable-libx264 \
+  --enable-libx265 \
+  --enable-libvpx \
+  --enable-libtheora \
+  --enable-libvorbis \
+  --enable-libopus \
+  --enable-libfdk-aac \
+  --enable-libass \
+  --enable-libwebp \
+  --enable-librtmp \
+  --enable-postproc \
+  --enable-avresample \
+  --enable-libfreetype \
+  --enable-openssl \
+  --disable-debug \
+  --disable-doc \
+  --disable-ffplay \
+  --extra-cflags="-I${PREFIX}/include" \
+  --extra-ldflags="-L${PREFIX}/lib" \
+  --extra-libs="-lpthread -lm" \
+  --prefix="${PREFIX}" && \
+  make && make install && make distclean
+
 # Install Build tools
 RUN apk add --no-cache --virtual buildtools build-base linux-headers udev python && \
     npm install --unsafe-perm --no-update-notifier --only=production && \
     /tmp/remove_native_gpio.sh && \
     cp -R node_modules prod_node_modules
+
 
 #### Stage RELEASE #####################################################################################################
 FROM base AS RELEASE
@@ -63,16 +170,20 @@ LABEL org.label-schema.build-date=${BUILD_DATE} \
     authors="Dave Conway-Jones, Nick O'Leary, James Thomas, Raymond Mouthaan"
 
 COPY --from=build /usr/src/node-red/prod_node_modules ./node_modules
+COPY --from=build /opt/ffmpeg /opt/ffmpeg
+COPY --from=build /opt/ffmpeg/lib64/libaom.so.0 /usr/lib/libaom.so.0
+COPY --from=build /usr/lib/libfdk-aac.so.2 /usr/lib/libfdk-aac.so.2
 
 # Chown, install devtools & Clean up
 RUN chown -R node-red:node-red /usr/src/node-red && \
     /tmp/install_devtools.sh && \
-    rm -r /tmp/*
+    rm -rf /var/cache/apk/* /tmp/*
 
 USER node-red
 
 # Env variables
-ENV NODE_RED_VERSION=$NODE_RED_VERSION \
+ENV PATH=/opt/ffmpeg/bin:$PATH \
+    NODE_RED_VERSION=$NODE_RED_VERSION \
     NODE_PATH=/usr/src/node-red/node_modules:/data/node_modules \
     FLOWS=flows.json
 
