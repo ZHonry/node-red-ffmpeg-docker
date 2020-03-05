@@ -1,3 +1,28 @@
+# Node-RED FFMPEG Docker
+## 说明
+使用nodered官方docker构建文件做基础，增加自编译FFMPEG，以方便开启HK中的声音（需要acc音频），同时加入自己需要的几个软件,NUT(连接UPS)，sshpass（自动输入终端用户密码）
+## 构建Docker
+如何构建请参照[docker-custom](https://github.com/ZHonry/node-red-ffmpeg-docker/tree/master/docker-custom) 目录README
+## 使用
+使用方法与Ndode-RED官方docker完全一致，如果需要在nr中使用exec节点远程控制其他Linux终端，为确保ssh证书持久保存，需将/usr/src/node-red/.ssh文件夹映射到本地
+配合sshpass软件（已安装）可自动输入ssh密码。
+如图
+![image](https://github.com/ZHonry/node-red-ffmpeg-docker/blob/master/docker-custom/exec.png)
+```javascript
+version: '2.1'
+    services:
+        nodered:
+          image: jeesa/node-red-ffmpeg:latest
+          container_name: nodered
+          network_mode: "host"
+          volumes:
+            - /opt/nodered/data:/data
+            - /opt/nodered/ssh:/usr/src/node-red/.ssh
+          environment:
+            - TZ=Asia/Shanghai
+          restart: always
+``` 
+以下为Node-RED Docker原README
 # Node-RED Docker
 
 [![Greenkeeper badge](https://badges.greenkeeper.io/node-red/node-red-docker.svg)](https://greenkeeper.io/)
