@@ -11,7 +11,7 @@
 使用方法与Ndode-RED官方docker完全一致，如果需要在nr中使用exec节点远程控制其他Linux终端，为确保ssh证书持久保存，需将/usr/src/node-red/.ssh文件夹映射到本地
 配合sshpass软件（已安装）可自动输入ssh密码。
 如图
-![image](https://github.com/ZHonry/node-red-ffmpeg-docker/blob/master/docker-custom/exec.png)
+![image](https://github.com/ZHonry/node-red-ffmpeg-docker/blob/master/exec.png)
 ```javascript
 version: '2.1'
     services:
