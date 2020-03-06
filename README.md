@@ -1,10 +1,11 @@
 # Node-RED FFMPEG Docker
+
 ## 说明
-##### 1.使用nodered官方docker构建文件做基础
-##### 2.增加自编译FFMPEG，以方便开启HK中的声音（需要acc音频）
-##### 3.加入自己需要的软件,NUT(连接UPS)，sshpass（自动输入终端用户密码）
-##### 4.修改源为中科大源，提高构建速度；
-##### 5.增加PROXY代理在构建过程中加速下载AOM和FFMPEG源代码，默认不代理，需将[Dockerfile.custom](https://github.com/ZHonry/node-red-ffmpeg-docker/blob/master/docker-custom/Dockerfile.custom)文件中以下内容取消注释，并将IP和端口根据自己情况修改
+###### 1.使用nodered官方docker构建文件做基础
+###### 2.增加自编译FFMPEG，以方便开启HK中的声音（需要acc音频）
+###### 3.加入自己需要的软件,NUT(连接UPS)，sshpass（自动输入终端用户密码）
+###### 4.修改源为中科大源，提高构建速度；
+###### 5.增加PROXY代理在构建过程中加速下载AOM和FFMPEG源代码，默认不代理，需将[Dockerfile.custom](https://github.com/ZHonry/node-red-ffmpeg-docker/blob/master/docker-custom/Dockerfile.custom)文件中以下内容取消注释，并将IP和端口根据自己情况修改
 ```javascript
 #ENV MY_PROXY_URL="http://192.168.2.70:1086/"
 #ENV HTTP_PROXY=$MY_PROXY_URL \
@@ -14,7 +15,7 @@
 #    https_proxy=$MY_PROXY_URL \
 #    ftp_proxy=$MY_PROXY_URL
 ```
-
+###### 6.静态编译ffmpeg
 ## 构建Docker
 如何构建请参照[docker-custom](https://github.com/ZHonry/node-red-ffmpeg-docker/tree/master/docker-custom) 目录的README，也可直接使用[jeesa/node-red-ffmpeg](https://hub.docker.com/r/jeesa/node-red-ffmpeg)（仅支持amd64，其他CPU请自行构建）
 ## 使用
@@ -39,7 +40,7 @@ version: '2.1'
           restart: always
 ``` 
 
-### FFMPEG编译引用[alfg/docker-ffmpeg](https://github.com/alfg/docker-ffmpeg)
+### FFMPEG编译引用[static-ffmpeg](https://github.com/wader/static-ffmpeg)的项目。
 
 ## 以下为Node-RED Docker原README
 # Node-RED Docker
