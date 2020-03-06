@@ -234,13 +234,13 @@ RUN \
   libxvid: env.LIBXVID_VERSION, \
   }' > /versions.json
   
-ENV MY_PROXY_URL="http://192.168.2.70:1086/"
-ENV HTTP_PROXY=$MY_PROXY_URL \
-    HTTPS_PROXY=$MY_PROXY_URL \
-    FTP_PROXY=$MY_PROXY_URL \
-    http_proxy=$MY_PROXY_URL \
-    https_proxy=$MY_PROXY_URL \
-    ftp_proxy=$MY_PROXY_URL
+#ENV MY_PROXY_URL="http://192.168.2.70:1086/"
+#ENV HTTP_PROXY=$MY_PROXY_URL \
+#    HTTPS_PROXY=$MY_PROXY_URL \
+#    FTP_PROXY=$MY_PROXY_URL \
+#    http_proxy=$MY_PROXY_URL \
+#    https_proxy=$MY_PROXY_URL \
+#    ftp_proxy=$MY_PROXY_URL
 
 RUN \
   wget -O lame.tar.gz "$MP3LAME_URL" && \
