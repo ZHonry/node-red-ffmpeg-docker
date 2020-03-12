@@ -6,6 +6,7 @@
 ###### 3.加入自己需要的软件,NUT(连接UPS)，sshpass（自动输入终端用户密码）
 ###### 4.修改源为中科大源，提高构建速度；
 ###### 5.增加PROXY代理在构建过程中加速下载AOM和FFMPEG源代码，默认不代理，需将[Dockerfile.custom](https://github.com/ZHonry/node-red-ffmpeg-docker/blob/master/docker-custom/Dockerfile.custom)文件中以下内容取消注释，并将IP和端口根据自己情况修改
+###### 6.增加alsa-lib-dev安装包，方便使用语音功能（20200312）。
 ```javascript
 #ENV MY_PROXY_URL="http://192.168.2.70:1086/"
 #ENV HTTP_PROXY=$MY_PROXY_URL \
