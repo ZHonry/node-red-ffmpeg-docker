@@ -8,19 +8,9 @@ FROM ${ARCH}/node:${NODE_VERSION}-${OS} AS base
 # Copy scripts
 COPY scripts/*.sh /tmp/
 
-
-#使用代理加速下载
-#ENV MY_PROXY_URL="http://192.168.2.206:1086/"
-#ENV HTTP_PROXY=$MY_PROXY_URL \
-#    HTTPS_PROXY=$MY_PROXY_URL \
-#    FTP_PROXY=$MY_PROXY_URL \
-#    http_proxy=$MY_PROXY_URL \
-#    https_proxy=$MY_PROXY_URL \
-#    ftp_proxy=$MY_PROXY_URL
-    
 #修改为中科大源
-#RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && \
-#echo http://mirrors.ustc.edu.cn/alpine/edge/testing >> /etc/apk/repositories
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && \
+echo http://mirrors.ustc.edu.cn/alpine/edge/testing >> /etc/apk/repositories
 
 # Install tools, create Node-RED app and data dir, add user and set rights
 RUN set -ex && \
@@ -36,7 +26,7 @@ RUN set -ex && \
     mkdir -p /usr/src/node-red /data && \
     deluser --remove-home node && \
     adduser -h /usr/src/node-red -D -H node-red -u 1000 && \
-    chown -R node-red:root /data && chmod -R g+rwX /data && \ 
+    chown -R node-red:root /data && chmod -R g+rwX /data && \
     chown -R node-red:root /usr/src/node-red && chmod -R g+rwX /usr/src/node-red
     # chown -R node-red:node-red /data && \
     # chown -R node-red:node-red /usr/src/node-red
@@ -51,11 +41,34 @@ COPY flows.json /data
 #### Stage BUILD #######################################################################################################
 FROM base AS build
 
+#修改为中科大源
+#RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && \
+#echo http://mirrors.ustc.edu.cn/alpine/edge/testing >> /etc/apk/repositories
+
 # Install Build tools
 RUN apk add --no-cache --virtual buildtools build-base linux-headers udev python && \
-    npm install --unsafe-perm --no-update-notifier --no-fund --only=production && \
+    npm install --unsafe-perm --no-update-notifier --only=production && \
     /tmp/remove_native_gpio.sh && \
     cp -R node_modules prod_node_modules
+
+#使用代理加速下载
+ENV MY_PROXY_URL="http://192.168.2.206:1086/"
+ENV HTTP_PROXY=$MY_PROXY_URL \
+    HTTPS_PROXY=$MY_PROXY_URL \
+    FTP_PROXY=$MY_PROXY_URL \
+    http_proxy=$MY_PROXY_URL \
+    https_proxy=$MY_PROXY_URL \
+    ftp_proxy=$MY_PROXY_URL
+
+RUN case "$(uname -m)" in \
+x86_64) FFMPEG_ARCH='x86_64';; \
+armv6l) FFMPEG_ARCH='armv6l';; \
+armv7l) FFMPEG_ARCH='armv6l';; \
+aarch64) FFMPEG_ARCH='aarch64';; \
+*) echo "unsupported architecture"; exit 1 ;; \
+esac \
+&& set -x \
+&& curl -Lfs https://github.com/oznu/ffmpeg-for-homebridge/releases/download/v0.0.6/ffmpeg-alpine-${FFMPEG_ARCH}.tar.gz | tar xzf - -C / --no-same-owner
 
 #### Stage RELEASE #####################################################################################################
 FROM base AS RELEASE
@@ -80,7 +93,7 @@ LABEL org.label-schema.build-date=${BUILD_DATE} \
     authors="Dave Conway-Jones, Nick O'Leary, James Thomas, Raymond Mouthaan"
 
 COPY --from=build /usr/src/node-red/prod_node_modules ./node_modules
-
+COPY --from=build /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 # Chown, install devtools & Clean up
 RUN chown -R node-red:root /usr/src/node-red && \
     /tmp/install_devtools.sh && \
@@ -95,6 +108,9 @@ ENV NODE_RED_VERSION=$NODE_RED_VERSION \
 
 # ENV NODE_RED_ENABLE_SAFE_MODE=true    # Uncomment to enable safe start mode (flows not running)
 # ENV NODE_RED_ENABLE_PROJECTS=true     # Uncomment to enable projects option
+
+# User configuration directory volume
+VOLUME ["/data"]
 
 # Expose the listening port of node-red
 EXPOSE 1880
