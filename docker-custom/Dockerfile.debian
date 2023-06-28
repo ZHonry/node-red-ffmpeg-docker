@@ -1,5 +1,5 @@
 ARG ARCH=amd64
-ARG NODE_VERSION=12
+ARG NODE_VERSION=16
 ARG OS=buster-slim
 
 #### Stage BASE ########################################################################################################
@@ -18,12 +18,13 @@ RUN set -ex && \
         wget \
         git \
         openssl \
-        openssh-client && \
+        openssh-client \
+        ca-certificates && \
     mkdir -p /usr/src/node-red /data && \
     deluser --remove-home node && \
     # adduser --home /usr/src/node-red --disabled-password --no-create-home node-red --uid 1000 && \
     useradd --home-dir /usr/src/node-red --uid 1000 node-red && \
-    chown -R node-red:root /data && chmod -R g+rwX /data && \ 
+    chown -R node-red:root /data && chmod -R g+rwX /data && \
     chown -R node-red:root /usr/src/node-red && chmod -R g+rwX /usr/src/node-red
     # chown -R node-red:node-red /data && \
     # chown -R node-red:node-red /usr/src/node-red
@@ -31,9 +32,15 @@ RUN set -ex && \
 # Set work directory
 WORKDIR /usr/src/node-red
 
+# Setup SSH known_hosts file
+COPY known_hosts.sh .
+RUN ./known_hosts.sh /etc/ssh/ssh_known_hosts && rm /usr/src/node-red/known_hosts.sh
+RUN echo "PubkeyAcceptedKeyTypes +ssh-rsa" >> /etc/ssh/ssh_config
+
 # package.json contains Node-RED NPM module and node dependencies
 COPY package.json .
 COPY flows.json /data
+COPY scripts/entrypoint.sh .
 
 #### Stage BUILD #######################################################################################################
 FROM base AS build
@@ -73,11 +80,14 @@ RUN chown -R node-red:root /usr/src/node-red && \
     apt-get update && apt-get install -y build-essential python-dev python3 && \
     rm -r /tmp/*
 
+RUN npm config set cache /data/.npm --global
+
 USER node-red
 
 # Env variables
 ENV NODE_RED_VERSION=$NODE_RED_VERSION \
     NODE_PATH=/usr/src/node-red/node_modules:/data/node_modules \
+    PATH=/usr/src/node-red/node_modules/.bin:${PATH} \
     FLOWS=flows.json
 
 # ENV NODE_RED_ENABLE_SAFE_MODE=true    # Uncomment to enable safe start mode (flows not running)
@@ -89,4 +99,4 @@ EXPOSE 1880
 # Add a healthcheck (default every 30 secs)
 # HEALTHCHECK CMD curl http://localhost:1880/ || exit 1
 
-ENTRYPOINT ["npm", "start", "--cache", "/data/.npm", "--", "--userDir", "/data"]
+ENTRYPOINT ["./entrypoint.sh"]

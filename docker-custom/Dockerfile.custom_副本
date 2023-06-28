@@ -1,5 +1,5 @@
 ARG ARCH=amd64
-ARG NODE_VERSION=16
+ARG NODE_VERSION=12
 ARG OS=alpine
 
 #### Stage BASE ########################################################################################################
@@ -22,8 +22,7 @@ RUN set -ex && \
         nano \
         git \
         openssl \
-        openssh-client \
-        ca-certificates && \
+        openssh-client && \
     mkdir -p /usr/src/node-red /data && \
     deluser --remove-home node && \
     adduser -h /usr/src/node-red -D -H node-red -u 1000 && \
@@ -35,24 +34,31 @@ RUN set -ex && \
 # Set work directory
 WORKDIR /usr/src/node-red
 
-# Setup SSH known_hosts file
-COPY known_hosts.sh .
-RUN ./known_hosts.sh /etc/ssh/ssh_known_hosts && rm /usr/src/node-red/known_hosts.sh
-RUN echo "PubkeyAcceptedKeyTypes +ssh-rsa" >> /etc/ssh/ssh_config
-
 # package.json contains Node-RED NPM module and node dependencies
 COPY package.json .
 COPY flows.json /data
-COPY scripts/entrypoint.sh .
 
 #### Stage BUILD #######################################################################################################
 FROM base AS build
 
+#修改为中科大源
+#RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && \
+#echo http://mirrors.ustc.edu.cn/alpine/edge/testing >> /etc/apk/repositories
+
 # Install Build tools
-RUN apk add --no-cache --virtual buildtools build-base linux-headers udev python3 && \
-    npm install --unsafe-perm --no-update-notifier --no-fund --only=production && \
+RUN apk add --no-cache --virtual buildtools build-base linux-headers udev python && \
+    npm install --unsafe-perm --no-update-notifier --only=production && \
     /tmp/remove_native_gpio.sh && \
     cp -R node_modules prod_node_modules
+
+#使用代理加速下载
+ENV MY_PROXY_URL="http://192.168.2.206:1086/"
+ENV HTTP_PROXY=$MY_PROXY_URL \
+    HTTPS_PROXY=$MY_PROXY_URL \
+    FTP_PROXY=$MY_PROXY_URL \
+    http_proxy=$MY_PROXY_URL \
+    https_proxy=$MY_PROXY_URL \
+    ftp_proxy=$MY_PROXY_URL
 
 RUN case "$(uname -m)" in \
 x86_64) FFMPEG_ARCH='x86_64';; \
@@ -94,18 +100,18 @@ RUN chown -R node-red:root /usr/src/node-red && \
     /tmp/install_devtools.sh && \
     rm -r /tmp/*
 
-RUN npm config set cache /data/.npm --global 
-
 USER node-red
 
 # Env variables
 ENV NODE_RED_VERSION=$NODE_RED_VERSION \
     NODE_PATH=/usr/src/node-red/node_modules:/data/node_modules \
-    PATH=/usr/src/node-red/node_modules/.bin:${PATH} \
     FLOWS=flows.json
 
 # ENV NODE_RED_ENABLE_SAFE_MODE=true    # Uncomment to enable safe start mode (flows not running)
 # ENV NODE_RED_ENABLE_PROJECTS=true     # Uncomment to enable projects option
+
+# User configuration directory volume
+VOLUME ["/data"]
 
 # Expose the listening port of node-red
 EXPOSE 1880
@@ -113,5 +119,4 @@ EXPOSE 1880
 # Add a healthcheck (default every 30 secs)
 # HEALTHCHECK CMD curl http://localhost:1880/ || exit 1
 
-# ENTRYPOINT ["npm", "start", "--cache", "/data/.npm", "--", "--userDir", "/data"]
-ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["npm", "start", "--cache", "/data/.npm", "--", "--userDir", "/data"]
